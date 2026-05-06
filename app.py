@@ -78,19 +78,20 @@ h1, h2, h3, h4, h5, h6, p, span, div, label {
     color: #ffffff !important;
 }
 .hero {
-   background: linear-gradient(
-    135deg,
-    #16213E 0%,
-    #1A4B84 55%,
-    #4EA8DE 100%
-);
+    background: linear-gradient(
+        135deg,
+        #071B34 0%,
+        #0E3A66 45%,
+        #1D75BD 100%
+    );
+}
     padding: 30px;
     border-radius: 24px;
     margin-bottom: 22px;
     box-shadow: 0 12px 28px rgba(11,31,58,0.22);
 }
 .hero h1 {
-    color: #ffffff;
+    color: #AEEBFF !important;
     font-size: 36px;
     margin: 0;
     font-weight: 900;
