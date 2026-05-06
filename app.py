@@ -77,54 +77,32 @@ h1, h2, h3, h4, h5, h6, p, span, div, label {
 [data-testid="stSidebar"] div {
     color: #ffffff !important;
 }
-# .hero {
-#     background: linear-gradient(135deg, #0b1f3a 0%, #123d6a 50%, #1f6fb2 100%);
-#     padding: 30px;
-#     border-radius: 24px;
-#     margin-bottom: 22px;
-#     box-shadow: 0 12px 28px rgba(11,31,58,0.22);
-# }
-# .hero h1 {
-#     color: #ffffff;
-#     font-size: 36px;
-#     margin: 0;
-#     font-weight: 900;
-# }
-# .hero p {
-#     color: #dbeafe;
-#     font-size: 15px;
-#     margin-top: 8px;
-#     max-width: 950px;
-# }
-
 .hero {
-    background: linear-gradient(
-        135deg,
-        #0b1f3a 0%,
-        #123d6a 50%,
-        #1f6fb2 100%
-    );
-    padding: 40px;
+   background: linear-gradient(
+    135deg,
+    #16213E 0%,
+    #1A4B84 55%,
+    #4EA8DE 100%
+);
+    padding: 30px;
     border-radius: 24px;
     margin-bottom: 22px;
     box-shadow: 0 12px 28px rgba(11,31,58,0.22);
 }
-
 .hero h1 {
-    color: #FFFFFF !important;
-    font-size: 42px;
-    margin: 0 0 18px 0;
+    color: #ffffff;
+    font-size: 36px;
+    margin: 0;
     font-weight: 900;
-    line-height: 1.2;
+}
+.hero p {
+    color: #dbeafe;
+    font-size: 15px;
+    margin-top: 8px;
+    max-width: 950px;
 }
 
-.hero p {
-    color: rgba(255,255,255,0.92);
-    font-size: 22px;
-    line-height: 1.7;
-    margin: 0;
-    max-width: 1000px;
-}
+
 .card {
     background: #ffffff;
     border: 1px solid #dbe3ef;
