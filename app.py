@@ -17,14 +17,14 @@ from module_roi import render_roi_page
 from module_copilot import render_copilot_page
 
 st.set_page_config(
-    page_title="Neurovascular Inventory Control Tower",
+    page_title="Inventory Control Tower",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 TODAY = pd.Timestamp("2026-05-05")
-PASSWORD = "TP1Balt"  
+PASSWORD = "TP2Balt"  
 
 def check_password():
     def password_entered():
