@@ -78,25 +78,30 @@ h1, h2, h3, h4, h5, h6, p, span, div, label {
     color: #ffffff !important;
 }
 .hero {
-    background: linear-gradient(135deg, #0b1f3a 0%, #123d6a 50%, #1f6fb2 100%);
+    background: linear-gradient(
+        135deg,
+        #F4F8FC 0%,
+        #E8F1FA 50%,
+        #DCEBFA 100%
+    );
     padding: 30px;
     border-radius: 24px;
     margin-bottom: 22px;
-    box-shadow: 0 12px 28px rgba(11,31,58,0.22);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
+
 .hero h1 {
-    color: #ffffff;
+    color: #0B1F3A !important;
     font-size: 36px;
     margin: 0;
     font-weight: 900;
 }
 .hero p {
-    color: #dbeafe;
+    color: #0B1F3A;
     font-size: 15px;
     margin-top: 8px;
     max-width: 950px;
 }
-
 
 .card {
     background: #ffffff;
