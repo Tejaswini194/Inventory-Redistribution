@@ -448,7 +448,7 @@ fdf = df[
 st.markdown(
     """
 <div class="hero">
-    <h1>Neurovascular Inventory Control Tower</h1>
+    <h1>Inventory Control Tower</h1>
     <p>
     An expiry-aware, demand-matched and compliance-ready intelligence layer for high-value neurovascular inventory across hospitals, distributors and warehouses.
     </p>
