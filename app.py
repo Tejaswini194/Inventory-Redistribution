@@ -14,7 +14,7 @@ load_dotenv()
 # ── New feature modules ──────────────────────────────────────────────────
 from module_export import render_export_page
 from module_roi import render_roi_page
-from module_copilot import render_copilot_page
+from Old.module_copilot import render_copilot_page
 
 st.set_page_config(
     page_title="Inventory Control Tower",
@@ -77,6 +77,19 @@ h1, h2, h3, h4, h5, h6, p, span, div, label {
 [data-testid="stSidebar"] div {
     color: #ffffff !important;
 }
+# .hero {
+#     background: linear-gradient(135deg, #0b1f3a 0%, #123d6a 50%, #1f6fb2 100%);
+#     padding: 30px;
+#     border-radius: 24px;
+#     margin-bottom: 22px;
+#     box-shadow: 0 12px 28px rgba(11,31,58,0.22);
+# }
+# .hero h1 {
+#     color: #ffffff;
+#     font-size: 36px;
+#     margin: 0;
+#     font-weight: 900;
+# }
 .hero {
     background: linear-gradient(
         135deg,
@@ -102,7 +115,6 @@ h1, h2, h3, h4, h5, h6, p, span, div, label {
     margin-top: 8px;
     max-width: 950px;
 }
-
 .card {
     background: #ffffff;
     border: 1px solid #dbe3ef;
@@ -659,27 +671,210 @@ def executive_overview():
 
     with c2:
         st.markdown("### Inventory Health Mix")
-        mix = fdf.groupby("Risk Level", as_index=False)["Inventory Value"].sum()
-        fig = px.pie(
-            mix,
-            values="Inventory Value",
-            names="Risk Level",
-            hole=0.55,
-            height=360,
-            color="Risk Level",
-            color_discrete_map={
-                "Critical":"#d92d20",
-                "High":"#f79009",
-                "Medium":"#2e90fa",
-                "Low":"#12b76a",
-                "Blocked":"#7a271a",
-            },
+
+        mix = (
+            fdf.groupby("Risk Level", as_index=False)
+            .agg({
+                "Inventory Value": "sum",
+                "Qty": "sum",
+                "At Risk Qty": "sum",
+                "Value at Risk": "sum",
+            })
+            .sort_values("Inventory Value", ascending=False)
         )
-        fig.update_layout(
-            paper_bgcolor="#ffffff",
-            font_color="#111827",
-        )
-        st.plotly_chart(fig, use_container_width=True)
+
+        if mix.empty:
+            st.info("No inventory records available for the selected filters.")
+        else:
+            fig = px.pie(
+                mix,
+                values="Inventory Value",
+                names="Risk Level",
+                hole=0.58,
+                height=390,
+                color="Risk Level",
+                color_discrete_map={
+                    "Critical": "#d92d20",
+                    "High": "#f79009",
+                    "Medium": "#2e90fa",
+                    "Low": "#12b76a",
+                    "Blocked": "#7a271a",
+                },
+            )
+
+            # Keep hover clean. Do not show customdata text in the tooltip.
+            fig.update_traces(
+                textinfo="label+percent",
+                textposition="inside",
+                insidetextorientation="auto",
+                textfont=dict(size=13, color="#ffffff", family="Arial"),
+                marker=dict(line=dict(color="#ffffff", width=3)),
+                hovertemplate=(
+                    "<b>%{label}</b><br>"
+                    "Share: %{percent}<br>"
+                    "Inventory Value: €%{value:,.0f}"
+                    "<extra></extra>"
+                ),
+            )
+
+            fig.update_layout(
+                paper_bgcolor="#ffffff",
+                plot_bgcolor="#ffffff",
+                font_color="#111827",
+                margin=dict(l=4, r=4, t=8, b=64),
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=-0.18,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=12),
+                ),
+                uniformtext_minsize=10,
+                uniformtext_mode="hide",
+            )
+
+            selected = None
+            try:
+                selected = st.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    key="inventory_health_mix_chart",
+                    on_select="rerun",
+                    selection_mode="points",
+                )
+            except TypeError:
+                st.plotly_chart(fig, use_container_width=True)
+                st.caption("Upgrade Streamlit to enable direct chart click: pip install --upgrade streamlit plotly")
+
+            def get_selected_risk(chart_selection):
+                """Return the clicked pie-slice label across Streamlit selection formats."""
+                if chart_selection is None:
+                    return None
+
+                try:
+                    points = chart_selection.selection.points
+                except Exception:
+                    try:
+                        points = chart_selection.get("selection", {}).get("points", [])
+                    except Exception:
+                        points = []
+
+                if not points:
+                    return None
+
+                point = points[0]
+                valid_levels = set(mix["Risk Level"].astype(str))
+
+                # Streamlit usually returns label for pie selections.
+                for key in ["label", "name", "legendgroup"]:
+                    try:
+                        value = point.get(key)
+                    except Exception:
+                        value = getattr(point, key, None)
+                    if value in valid_levels:
+                        return value
+
+                # Last fallback: use pointNumber to map back to sorted mix.
+                try:
+                    point_number = point.get("pointNumber")
+                except Exception:
+                    point_number = getattr(point, "pointNumber", None)
+
+                if point_number is not None:
+                    try:
+                        return str(mix.iloc[int(point_number)]["Risk Level"])
+                    except Exception:
+                        return None
+
+                return None
+
+            selected_risk = get_selected_risk(selected)
+
+            st.caption("Click any slice in the chart to open item-level inventory details.")
+
+            # Manual fallback so the demo never fails if chart click is not supported locally.
+            with st.expander("Open details manually if chart click does not respond", expanded=False):
+                manual_risk = st.selectbox(
+                    "Risk category",
+                    options=["Select"] + mix["Risk Level"].tolist(),
+                    key="inventory_health_manual_risk_select",
+                )
+                if manual_risk != "Select":
+                    selected_risk = manual_risk
+
+            def render_inventory_details(risk_value):
+                detail_df = fdf[fdf["Risk Level"] == risk_value].copy()
+
+                total_items = len(detail_df)
+                total_qty = int(detail_df["Qty"].sum())
+                total_at_risk = int(detail_df["At Risk Qty"].sum())
+                total_inventory_value = detail_df["Inventory Value"].sum()
+                total_value_at_risk = detail_df["Value at Risk"].sum()
+
+                st.markdown(
+                    f"""
+<div style="padding: 2px 2px 8px 2px;">
+    <div style="font-size: 22px; font-weight: 900; color: #0b1f3a; margin-bottom: 4px;">{risk_value} Inventory Details</div>
+    <div style="font-size: 13px; color: #64748b; margin-bottom: 14px;">Item-level inventory records for the selected health category.</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px;">
+    <div style="background: #ffffff; border: 1px solid #dbe3ef; border-radius: 14px; padding: 12px;">
+        <div style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;">Items</div>
+        <div style="font-size: 24px; color: #0b1f3a; font-weight: 900; margin-top: 4px;">{total_items}</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #dbe3ef; border-radius: 14px; padding: 12px;">
+        <div style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;">Total Qty</div>
+        <div style="font-size: 24px; color: #0b1f3a; font-weight: 900; margin-top: 4px;">{total_qty:,}</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #dbe3ef; border-radius: 14px; padding: 12px;">
+        <div style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;">Inventory Value</div>
+        <div style="font-size: 22px; color: #0b1f3a; font-weight: 900; margin-top: 4px; white-space: nowrap;">{euro(total_inventory_value)}</div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #dbe3ef; border-radius: 14px; padding: 12px;">
+        <div style="font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;">Value at Risk</div>
+        <div style="font-size: 22px; color: #0b1f3a; font-weight: 900; margin-top: 4px; white-space: nowrap;">{euro(total_value_at_risk)}</div>
+    </div>
+</div>
+""",
+                    unsafe_allow_html=True,
+                )
+
+                display_df = detail_df[
+                    [
+                        "Region", "Location", "Type", "Product", "SKU", "Batch",
+                        "Expiry", "Qty", "Monthly Usage", "At Risk Qty",
+                        "Inventory Value", "Value at Risk", "Transfer Allowed", "Recall Status",
+                    ]
+                ].copy()
+
+                display_df["Expiry"] = display_df["Expiry"].dt.strftime("%Y-%m-%d")
+                display_df["Inventory Value"] = display_df["Inventory Value"].apply(euro)
+                display_df["Value at Risk"] = display_df["Value at Risk"].apply(euro)
+
+                st.dataframe(
+                    display_df.reset_index(drop=True),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=min((len(display_df) * 42) + 38, 360),
+                )
+
+            if selected_risk:
+                if hasattr(st, "dialog"):
+                    try:
+                        @st.dialog("Inventory Health Details", width="large")
+                        def inventory_health_popup(risk_value):
+                            render_inventory_details(risk_value)
+                    except TypeError:
+                        @st.dialog("Inventory Health Details")
+                        def inventory_health_popup(risk_value):
+                            render_inventory_details(risk_value)
+
+                    inventory_health_popup(selected_risk)
+                else:
+                    st.markdown("#### Inventory Health Details")
+                    render_inventory_details(selected_risk)
 
     st.markdown('<div class="section-title">Top Recommendations</div>', unsafe_allow_html=True)
     if rec_df.empty:
@@ -763,15 +958,22 @@ def global_search_component():
         st.warning("No matching inventory records found.")
         return None
 
+    results_display = results[
+        [
+            "Region", "Location", "Type", "Product", "SKU", "Batch", "Expiry",
+            "Qty", "At Risk Qty", "Value at Risk", "Risk Level",
+            "Transfer Allowed", "Recall Status"
+        ]
+    ].copy()
+
+    results_display["Expiry"] = results_display["Expiry"].dt.strftime("%Y-%m-%d")
+    results_display["Value at Risk"] = results_display["Value at Risk"].apply(euro)
+
     st.dataframe(
-        results[
-            [
-                "Region","Location","Type","Product","SKU","Batch","Expiry","Qty",
-                "At Risk Qty","Value at Risk","Risk Level","Transfer Allowed","Recall Status"
-            ]
-        ],
+        results_display.reset_index(drop=True),
         use_container_width=True,
         hide_index=True,
+        height=min((len(results_display) * 42) + 38, 420),
     )
 
     options = results["Location"] + " | " + results["Product"] + " | " + results["Batch"]
