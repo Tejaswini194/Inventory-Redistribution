@@ -14,7 +14,7 @@ load_dotenv()
 # ── New feature modules ──────────────────────────────────────────────────
 from module_export import render_export_page
 from module_roi import render_roi_page
-from Old.module_copilot import render_copilot_page
+from module_copilot import render_copilot_page
 
 st.set_page_config(
     page_title="Inventory Control Tower",
